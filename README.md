@@ -1,4 +1,12 @@
-# <img src="https://raw.githubusercontent.com/swagger-api/swagger.io/wordpress/images/assets/SWC-logo-clr.png" height="80">
+
+<h1 align="center">
+   <b>
+        <a href="https://github.com/sixdjango/swagger-codegen-tool.git"><img src="https://raw.githubusercontent.com/swagger-api/swagger.io/wordpress/images/assets/SWC-logo-clr.png" height="80"></a><br>
+    </b>
+</h1>
+
+<p align="center">swagger-codegen-tool is a CLI tool to generate typescript/python code from swagger</p>
+
 
 <div align="center">
 
@@ -8,10 +16,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 </div>
-
-
-# swagger-codegen-tool
-swagger-codegen-tool is a CLI tool to generate typescript/python code from swagger
 
 ## usage
 
