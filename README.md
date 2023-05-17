@@ -23,7 +23,7 @@ swagger-codegen-tool --help
 
 ## 🤔 roadmap
 - [x] python parse
-- [] typescript
+- [ ] typescript
 
 ## 💁 Contributing
 This is an open source django project, you can contact me directly by <a href="mailto:six.django@gmail.com">email</a>
