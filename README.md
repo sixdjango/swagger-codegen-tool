@@ -42,6 +42,60 @@ swagger-codegen-tool -i <swagger-json> -l <lang> -o <output (optional)>
 
 > If you find any problems while using, you are welcome to submit pr.
 
+## output
+
+### python
+After the command is executed, You can see 3 files under the current folder `codegen_api.py` `codegen_components.py` `request-session.py`
+
+- `codegen_api.py`
+> This is the one that contains all the apis file, **Each command is overwritten**
+```python
+from .request_session import provide_request_session
+
+from . import codegen_components
+
+from aiohttp import ClientSession
+
+
+@provide_request_session
+async def errorUsingGET( session: ClientSession):
+    async with session.get('/error') as response:
+        data:object = await response.json()
+    return data
+```
+
+- `codegen_components.py`
+> This is the file that contains all the models,  **Each command is overwritten**
+
+```python
+from pydantic import BaseModel
+from typing import Generic, TypeVar
+
+class BaseResponse(BaseModel):
+		code: str
+		message: str
+```
+
+- `request-session.py`
+> Default async request file
+```python
+import contextlib
+from functools import wraps
+import aiohttp
+
+
+@contextlib.asynccontextmanager
+async def getClientSession():
+    session = aiohttp.ClientSession()
+    try:
+        yield session
+    except Exception as e:
+        raise e
+    finally:
+        session.close()
+```
+
+
 ## 📖 help
 ```bash
 swagger-codegen-tool --help
