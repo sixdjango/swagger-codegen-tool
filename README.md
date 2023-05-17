@@ -11,6 +11,17 @@ swagger-codegen-tool is a CLI tool to generate typescript/python code from swagg
 ```bash
 npx swagger-codegen-tool generate -i xxx -l python -o xx/xx
 ```
+or
+
+- install
+```bash
+npm i swagger-codegen-tool -g
+```
+- start
+```bash
+swagger-codegen-tool -i <swagger-json> -l <lang> -o <output (optional)>
+```
+
 > Currently only support python lang pares form swagger-api, There may be versions of swagger that are not compatible.
 
 > This is a swagger parser for internal use.
