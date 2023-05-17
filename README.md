@@ -1,7 +1,7 @@
 # <img src="https://raw.githubusercontent.com/swagger-api/swagger.io/wordpress/images/assets/SWC-logo-clr.png" height="80">
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![npm version](https://img.shields.io/npm/v/axios.svg?style=flat-square)](https://www.npmjs.org/package/swagger-codegen-tool)
+[![npm version](https://img.shields.io/npm/v/swagger-codegen-tool.svg?style=flat-square)](https://www.npmjs.org/package/swagger-codegen-tool)
 
 # swagger-codegen-tool
 swagger-codegen-tool is a CLI tool to generate typescript/python code from swagger
