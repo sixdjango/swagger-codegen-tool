@@ -1,17 +1,17 @@
 {
-  "name": "swagger-codegen-ts",
+  "name": "swagger-codegen-tool",
   "version": "0.1.0",
   "description": "",
   "main": "dist/index.js",
   "bin": {
-    "swagger-codegen-ts": "dist/index.js"
+    "swagger-codegen-tool": "dist/index.js"
   },
   "files": [
     "dist"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/sixdjango/swagger-codegen-ts.git"
+    "url": "https://github.com/sixdjango/swagger-codegen-tool.git"
   },
   "scripts": {
     "build": "rollup -c --bundleConfigAsCjs",
@@ -29,6 +29,7 @@
     "@rollup/plugin-json": "^6.0.0",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@types/inquirer": "^9.0.3",
+    "@types/lodash-es": "^4.17.7",
     "eslint": "^8.40.0",
     "rollup": "^3.20.0",
     "rollup-plugin-add-shebang": "^0.3.1",
@@ -39,6 +40,7 @@
     "chalk": "^5.2.0",
     "commander": "^10.0.1",
     "inquirer": "^9.2.3",
+    "lodash-es": "^4.17.21",
     "node-fetch": "^3.3.1"
   }
 }

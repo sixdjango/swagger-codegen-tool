@@ -48,12 +48,34 @@ export enum Format {
   Int64 = "int64",
 }
 
+export type Content = {
+  "application/json": {
+    "schema": PropertiesValue
+  },
+  "*/*": {
+    "schema": PropertiesValue
+  }
+}
+
+export type RequestContent ={
+  content:Content
+}
+
+export type ResponseContent ={
+  '200': {
+    description: Description,
+    content:Content
+  }
+}
 
 export type MethodValue = {
   tags:        string[];
   summary:     string;
+  description: string;
   operationId: string;
-  parameters:  Parameter[];
+  parameters?:  Parameter[];
+  requestBody?: RequestContent
+  responses?:    ResponseContent;
 }
 
 export interface Parameter {
@@ -62,7 +84,7 @@ export interface Parameter {
   description: string;
   required:    boolean;
   style:       string;
-  schema:      ParameterSchema;
+  schema:      PropertiesValue;
 }
 
 export interface ParameterSchema {

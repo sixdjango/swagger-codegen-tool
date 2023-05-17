@@ -7,8 +7,8 @@ const program = new Command()
 
 program.name('swagger-codegen-ts').description('swagger-codegen-ts is a CLI tool to generate typescript/python code from swagger').version(version)
 
-program.command('generate').description('generate code from swagger').option('-i, --input <input>').option('-l, --lang <lang>').action(async (options) => {
-  await generateCode(options.input, options.lang)
+program.command('generate').description('generate code from swagger').option('-i, --input <input>').option('-l, --lang <lang>').option('-o, --output <output>').action(async (options) => {
+  await generateCode(options.input, options.lang, options.output)
 })
 
 // const option = program.opts()
