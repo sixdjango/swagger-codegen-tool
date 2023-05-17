@@ -17,6 +17,9 @@
 
 </div>
 
+## dependencies
+1. Ensure `node.js` installation, `nvm` installation is recommended
+
 ## usage
 
 ```bash
