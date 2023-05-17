@@ -3,9 +3,6 @@
 <div align="center">
 
 [![npm version](https://img.shields.io/npm/v/swagger-codegen-tool.svg?style=flat-square)](https://www.npmjs.org/package/swagger-codegen-tool)
-[![code coverage](https://img.shields.io/coveralls/mzabriskie/axios.svg?style=flat-square)](https://coveralls.io/r/mzabriskie/axios)
-[![install size](https://img.shields.io/badge/dynamic/json?url=https://packagephobia.com/v2/api.json?p=swagger-codegen-tool&query=$.install.pretty&label=install%20size&style=flat-square)](https://packagephobia.now.sh/result?p=swagger-codegen-tool)
-[![npm bundle size](https://img.shields.io/bundlephobia/minzip/swagger-codegen-tool?style=flat-square)](https://bundlephobia.com/package/swagger-codegen-tool@latest)
 [![npm downloads](https://img.shields.io/npm/dm/swagger-codegen-tool.svg?style=flat-square)](https://npm-stat.com/charts.html?package=swagger-codegen-tool)
 [![gitter chat](https://img.shields.io/gitter/room/mzabriskie/swagger-codegen-tool.svg?style=flat-square)](https://gitter.im/mzabriskie/swagger-codegen-tool)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
