@@ -11,6 +11,7 @@
 <div align="center">
 
 [![npm version](https://img.shields.io/npm/v/swagger-codegen-tool.svg?style=flat-square)](https://www.npmjs.org/package/swagger-codegen-tool)
+[![install size](https://packagephobia.com/badge?p=swagger-codegen-tool)](https://packagephobia.com/result?p=swagger-codegen-tool)
 [![npm downloads](https://img.shields.io/npm/dm/swagger-codegen-tool.svg?style=flat-square)](https://npm-stat.com/charts.html?package=swagger-codegen-tool)
 [![gitter chat](https://img.shields.io/gitter/room/mzabriskie/swagger-codegen-tool.svg?style=flat-square)](https://gitter.im/mzabriskie/swagger-codegen-tool)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
