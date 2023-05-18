@@ -66,7 +66,7 @@ function format_generic_type(type: string) {
 
 const api_template = `
 @provide_request_session
-async def {api_name}({args}session: ClientSession):
+async def {api_name}({args}session: ClientSession = None):
     async with session.{method} as response:
         data:{response_type} = await response.{parse}
     return data
