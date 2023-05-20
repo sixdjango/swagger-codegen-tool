@@ -46,7 +46,7 @@ swagger-codegen-tool -i <swagger-json> -l <lang> -o <output (optional)>
 ## output
 
 ### python
-After the command is executed, You can see 3 files under the current folder `codegen_api.py` `codegen_components.py` `request-session.py`
+After the command is executed, You can see 4 files under the current folder `codegen_api.py` `codegen_components.py` `request-session.py` `codegen_enums.py`
 
 - `codegen_api.py`
 > This is the one that contains all the apis file, **Each command is overwritten**
@@ -94,6 +94,20 @@ async def getClientSession():
         raise e
     finally:
         session.close()
+```
+
+- `codegen_enums.py`
+> This is the file that contains all the enums,  **Each command is overwritten**. By determining the component name === 'AllEnumsInfo', then the enum is generated.
+
+```python
+from enum import Enum
+
+""" description """
+class XXXEnum(Enum):
+	A = 'A'
+	B = 'B'
+	C = 'C'
+	F = 'D'
 ```
 
 

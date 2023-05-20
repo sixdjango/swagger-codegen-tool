@@ -1,8 +1,8 @@
 import fs from 'node:fs'
 import { isArray } from 'lodash-es'
-import type { Components, Path, PropertiesValue, SwaggerSchema } from './types'
+import type { Components, Info, Path, PropertiesValue, SwaggerSchema } from './types'
 import { request_session_template } from './pythonTemplate'
-import { APIS_FILE_NAME, COMPONENTS_FILE_NAME, PYTHON_REQUEST_SESSION_FILE_NAME } from './enum'
+import { APIS_FILE_NAME, COMPONENTS_FILE_NAME, ENUMS_FILE_NAME, PYTHON_REQUEST_SESSION_FILE_NAME } from './enum'
 
 export enum PropertiesType {
   INTEGER = 'integer',
@@ -11,6 +11,7 @@ export enum PropertiesType {
   ARRAY = 'array',
   BOOLEAN = 'boolean',
   OBJECT = 'object',
+  VOID = 'Void',
 }
 
 export function generatePythonCode(schema: SwaggerSchema, output?: string) {
@@ -26,6 +27,7 @@ const typeMap = {
   [PropertiesType.ARRAY]: 'list',
   [PropertiesType.BOOLEAN]: 'bool',
   [PropertiesType.OBJECT]: 'dict',
+  [PropertiesType.VOID]: 'None',
 }
 
 const generic_components = []
@@ -39,12 +41,19 @@ function drop_generics(str: string) {
 function get_generic_class(str: string) {
   const sp = str.split('«')
   // 返回泛型
+  if (!sp[1])
+    return sp[0]
   return `${sp[1].replace('»', '')}`
 }
 
 function getRefType(ref: string) {
   const sp = ref.split('/')
-  return `'${drop_generics(sp[sp.length - 1])}'`
+  return `${drop_generics(sp[sp.length - 1])}`
+}
+
+function getRealClass(ref: string) {
+  const sp = ref.split('/')
+  return get_generic_class(`${sp[sp.length - 1]}`)
 }
 
 function isGeneric(ref: string) {
@@ -68,8 +77,9 @@ const api_template = `
 @provide_request_session
 async def {api_name}({args}session: ClientSession = None):
     async with session.{method} as response:
-        data:{response_type} = await response.{parse}
-    return data
+        data = await response.{parse}
+    {response_type}
+
     `
 function generateApi(paths: Path, output?: string) {
   const api_str_list: string[] = []
@@ -107,7 +117,7 @@ function generateApi(paths: Path, output?: string) {
         const python_type = format_generic_type($ref)
         // 设置参数
         t = t.replace('{args}', `data: ${COMPONENTS_FILE_NAME}.${python_type}, `)
-        t = t.replace('{method}', `${method}('${k}',json=data)`)
+        t = t.replace('{method}', `${method}('${k}',json=data.dict())`)
       }
       else {
         t = t.replace('{args}', '')
@@ -119,11 +129,20 @@ function generateApi(paths: Path, output?: string) {
         const content_type_k = Object.keys(responses['200'].content)[0]
         const { schema } = responses['200'].content[content_type_k]
         const $ref = schema.$ref
-        if ($ref)
+        if ($ref) {
           response_type = format_generic_type($ref)
+          // parse to pydantic class
+          const real_class = getRealClass($ref)
+          if (!typeMap[real_class] && isGeneric($ref))
+            t = t.replace('{response_type}', response_type ? `resp = ${COMPONENTS_FILE_NAME}.${response_type}.parse_obj(data)\n    resp.data = ${COMPONENTS_FILE_NAME}.${real_class}(**resp.data)\n    return resp` : 'None')
+          else
+            t = t.replace('{response_type}', response_type ? `return ${COMPONENTS_FILE_NAME}.${response_type}.parse_obj(data)` : 'None')
+        }
+      }
+      else {
+        t = t.replace('{response_type}', response_type ? `return ${COMPONENTS_FILE_NAME}.${response_type}.parse_obj(data)` : 'None')
       }
 
-      t = t.replace('{response_type}', response_type ? `${COMPONENTS_FILE_NAME}.${response_type}` : 'object')
       t = t.replace('{parse}', 'json()')
       t = `${description ? `''' ${description} '''` : ''}${t}`
       api_str_list.push(t)
@@ -167,6 +186,10 @@ function generatePythonClass(components: Components, output?: string) {
     const define_generic = `${generic_type} = TypeVar("${generic_type}")`
     const class_name = drop_generics(k)
 
+    // 生成枚举, key 写死后期可能开放
+    if (class_name === 'AllEnumsInfo')
+      return generate_python_enums(schemas[k], output)
+
     // 已经存在的泛型就跳过
     if (generic_components.includes(class_name))
       return
@@ -186,19 +209,49 @@ function generatePythonClass(components: Components, output?: string) {
       // console.log('python_type:', python_type)
       // console.log('get_generic_class(k):', get_generic_class(k))
       // 如果是泛型则设置泛型
-      if (is_generic_class && (python_type === `'${get_generic_class(k)}'`))
+      if (is_generic_class && (python_type === `${get_generic_class(k)}`))
         python_type = generic_type
 
       if (description) {
         const fill_description = description.split('\n').map(e => `\t\t# ${e.trim()}`).join('\n')
-        return `${fill_description}\n\t\t${p}: ${python_type}`
+        return `${fill_description}\n\t\t${p}: ${python_type} = None`
       }
 
-      return `\t\t${p}: ${python_type}`
+      return `\t\t${p}: ${python_type} = None`
     })
     const final_class = [class_name_str, ...properties_list].join('\n')
-    components_list.push(final_class)
+    let has_push = false
+    for (let i = 0; i < components_list.length; i++) {
+      const e = components_list[i]
+      if (e.includes(class_name)) {
+        components_list.splice(i, 0, final_class)
+        has_push = true
+        break
+      }
+    }
+    if (!has_push)
+      components_list.push(final_class)
   })
   const imports = ['""" This file is automatically generated, please do not modify """', 'from pydantic import BaseModel', 'from typing import Generic, TypeVar']
   fs.writeFileSync(`${output ?? '.'}/${COMPONENTS_FILE_NAME}.py`, [...imports, components_list.join('\n\n')].join('\n\n'))
+}
+
+function generate_python_enums(all_enums_info: Info, output?: string) {
+  const { properties } = all_enums_info
+  if (properties) {
+    const enums_list: string[] = []
+    Object.keys(properties).forEach((k) => {
+      const { enum: enum_list, description, example } = properties[k]
+      const enum_name = example ?? k[0].toUpperCase() + k.slice(1)
+      const enum_description = description
+      const enum_str = [`${enum_description ? `""" ${enum_description} """\n` : ''}class ${enum_name}(Enum):`]
+      enum_list.forEach((e: string) => {
+        enum_str.push(`\t${e} = '${e}'`)
+      })
+      enums_list.push(enum_str.join('\n'))
+    })
+
+    const imports = ['""" This file is automatically generated, please do not modify """', 'from enum import Enum']
+    fs.writeFileSync(`${output ?? '.'}/${ENUMS_FILE_NAME}.py`, [...imports, enums_list.join('\n\n')].join('\n\n'))
+  }
 }

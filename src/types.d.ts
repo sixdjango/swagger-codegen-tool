@@ -37,7 +37,7 @@ export interface Info {
   description: string;
 }
 
-export type PropertiesValue = {description: string, type?: PropertiesType, $ref?: string, format?: Format, items: PropertiesValue}
+export type PropertiesValue = {description: string, type?: PropertiesType, $ref?: string, format?: Format, items: PropertiesValue,enum?:string[], example?:string}
 
 export type Properties = Record<string, PropertiesValue>
 
