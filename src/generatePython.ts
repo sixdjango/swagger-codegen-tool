@@ -125,6 +125,9 @@ function generateApi(paths: Path, output?: string) {
       }
 
       let response_type = ''
+      const return_none = () => {
+        return t.replace('{response_type}', response_type ? `return ${COMPONENTS_FILE_NAME}.${response_type}.parse_obj(data)` : 'return data')
+      }
       if (responses) {
         const content_type_k = Object.keys(responses['200'].content)[0]
         const { schema } = responses['200'].content[content_type_k]
@@ -136,11 +139,14 @@ function generateApi(paths: Path, output?: string) {
           if (!typeMap[real_class] && isGeneric($ref))
             t = t.replace('{response_type}', response_type ? `resp = ${COMPONENTS_FILE_NAME}.${response_type}.parse_obj(data)\n    resp.data = ${COMPONENTS_FILE_NAME}.${real_class}(**resp.data)\n    return resp` : 'None')
           else
-            t = t.replace('{response_type}', response_type ? `return ${COMPONENTS_FILE_NAME}.${response_type}.parse_obj(data)` : 'None')
+            t = return_none()
+        }
+        else {
+          t = return_none()
         }
       }
       else {
-        t = t.replace('{response_type}', response_type ? `return ${COMPONENTS_FILE_NAME}.${response_type}.parse_obj(data)` : 'None')
+        t = return_none()
       }
 
       t = t.replace('{parse}', 'json()')
