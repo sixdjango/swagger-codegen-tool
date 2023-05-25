@@ -30,7 +30,49 @@ const typeMap = {
   [PropertiesType.VOID]: 'None',
 }
 
-const generic_components = []
+const generic_components: Record<string, any> = {}
+
+// 传进来是一个类名 如 "GenericPageQueryResult«List«BusinessVoucherInfo»»"
+function get_generic_class_list(str: string) {
+  str = str.replaceAll('»', '')
+  const class_list = str.split('«')
+  return class_list
+}
+
+function get_sub_generic_class(str: string) {
+  const list = get_generic_class_list(str)
+  if (list.length === 1)
+    return list[0]
+}
+
+// 判断是否是泛型属性
+function is_generic_property(v: PropertiesValue, class_name: string) {
+  const ref = v.$ref ?? v.items?.$ref
+  if (ref) {
+    const ref_type = get$RefType(ref)
+    return class_name.includes(ref_type)
+  }
+
+  return class_name.includes(v.type)
+}
+
+// 获取泛型属性的类名例如：list[T]
+function get_generic_property_class(v: PropertiesValue, generic_name: string) {
+  if (v.type === PropertiesType.ARRAY)
+    return `list[${generic_name}]`
+
+  return generic_name
+}
+
+function get$RefType(str: string) {
+  const sp = str.split('/')
+  return sp[sp.length - 1]
+}
+
+function getRefType(ref: string) {
+  const sp = ref.split('/')
+  return `${drop_generics(sp[sp.length - 1])}`
+}
 
 function drop_generics(str: string) {
   const sp = str.split('«')
@@ -46,11 +88,6 @@ function get_generic_class(str: string) {
   return `${sp[1].replace('»', '')}`
 }
 
-function getRefType(ref: string) {
-  const sp = ref.split('/')
-  return `${drop_generics(sp[sp.length - 1])}`
-}
-
 function getRealClass(ref: string) {
   const sp = ref.split('/')
   return get_generic_class(`${sp[sp.length - 1]}`)
@@ -61,16 +98,62 @@ function isGeneric(ref: string) {
 }
 
 function format_generic_type(type: string) {
-  const sp = type.split('/')
-  type = sp[sp.length - 1]
+  const ref_type = get$RefType(type)
+
   if (isGeneric(type)) {
-    const g_class = get_generic_class(type)
-    const i = type.indexOf('«')
-    const root_class = type.substring(0, i)
-    return `${root_class}[${typeMap[g_class] ?? `${COMPONENTS_FILE_NAME}.${g_class}`}]`
+    const class_types = get_generic_class_list(ref_type)
+
+    const first = class_types.shift()
+    const filter_types = class_types.filter(v => v !== 'List')
+    const g_class = filter_types.reduce((pre, cur) => {
+      if (cur === 'List')
+        return pre
+      return `${pre}[${`${typeMap[cur] ?? `${COMPONENTS_FILE_NAME}.${cur}`}`}`
+    }, `${COMPONENTS_FILE_NAME}.${first}`)
+
+    return g_class + new Array(filter_types.length).fill(']').join('')
+
+    // const g_class = get_generic_class(type)
+    // const i = type.indexOf('«')
+    // const root_class = type.substring(0, i)
+    // return `${root_class}[${typeMap[g_class] ?? `${COMPONENTS_FILE_NAME}.${g_class}`}]`
   }
 
-  return typeMap[type] ?? type
+  return typeMap[type] ?? `${COMPONENTS_FILE_NAME}.${ref_type}`
+}
+
+function format_generic_response(type: string) {
+  const ref_type = get$RefType(type)
+  const class_types = get_generic_class_list(ref_type)
+  const keys = ['resp']
+  let response_str = ''
+
+  let is_List = false
+  for (let i = 0; i < class_types.length; i++) {
+    const class_str = class_types[i]
+    let next_class_str = class_types[i + 1]
+    const generic_property_key = generic_components[class_str]?.generic_property_key
+
+    if (class_str === 'List')
+      continue
+
+    if (next_class_str === 'List') {
+      next_class_str = class_types[i + 2]
+      is_List = true
+    }
+
+    if (generic_property_key) {
+      keys.push(generic_property_key)
+      const k = keys.join('.')
+
+      if (is_List) {
+        is_List = false
+        response_str += `${k} = [${COMPONENTS_FILE_NAME}.${next_class_str}(**v) for v in ${k}]\n    `
+      }
+      else { response_str += `${k} = ${COMPONENTS_FILE_NAME}.${next_class_str}(**${k})\n    ` }
+    }
+  }
+  return response_str
 }
 
 const api_template = `
@@ -116,7 +199,7 @@ function generateApi(paths: Path, output?: string) {
         const $ref = requestBody.content['application/json'].schema.$ref
         const python_type = format_generic_type($ref)
         // 设置参数
-        t = t.replace('{args}', `data: ${COMPONENTS_FILE_NAME}.${python_type}, `)
+        t = t.replace('{args}', `data: ${python_type}, `)
         t = t.replace('{method}', `${method}('${k}',json=data.dict())`)
       }
       else {
@@ -126,7 +209,7 @@ function generateApi(paths: Path, output?: string) {
 
       let response_type = ''
       const return_none = () => {
-        return t.replace('{response_type}', response_type ? `return ${COMPONENTS_FILE_NAME}.${response_type}.parse_obj(data)` : 'return data')
+        return t.replace('{response_type}', response_type ? `return ${response_type}.parse_obj(data)` : 'return data')
       }
       if (responses) {
         const content_type_k = Object.keys(responses['200'].content)[0]
@@ -137,7 +220,7 @@ function generateApi(paths: Path, output?: string) {
           // parse to pydantic class
           const real_class = getRealClass($ref)
           if (!typeMap[real_class] && isGeneric($ref))
-            t = t.replace('{response_type}', response_type ? `resp = ${COMPONENTS_FILE_NAME}.${response_type}.parse_obj(data)\n    resp.data = ${COMPONENTS_FILE_NAME}.${real_class}(**resp.data)\n    return resp` : 'None')
+            t = t.replace('{response_type}', response_type ? `resp = ${response_type}.parse_obj(data)\n    ${format_generic_response($ref)}\n    return resp` : 'None')
           else
             t = return_none()
         }
@@ -173,16 +256,15 @@ function generatePythonClass(components: Components, output?: string) {
   Object.keys(schemas).forEach((k) => {
     const { properties, description: class_description } = schemas[k]
 
-    const getType = (v: PropertiesValue) => {
+    const getType = (v: PropertiesValue, class_name?: string) => {
       const { type, $ref, items } = v
       let python_type = $ref ? getRefType($ref) : typeMap[type]
       if (items && python_type === 'list') {
-        const list_type = getType(items)
+        const list_type = getType(items, class_name)
         python_type = `list[${list_type}]`
-        return python_type
       }
 
-      return python_type
+      return class_name === python_type ? `'${python_type}'` : python_type
     }
 
     // 是否是泛型
@@ -197,34 +279,41 @@ function generatePythonClass(components: Components, output?: string) {
       return generate_python_enums(schemas[k], output)
 
     // 已经存在的泛型就跳过
-    if (generic_components.includes(class_name))
+    if (generic_components[class_name])
       return
 
     let class_name_str = `${class_description ? `""" ${class_description} """\n` : ''}class ${class_name}(${is_generic_class ? `Generic[${generic_type}], ` : ''}BaseModel):`
 
     if (is_generic_class) {
-      generic_components.push(class_name)
+      generic_components[class_name] = { class_name }
       class_name_str = `${define_generic}\n${class_name_str}`
       generic_count++
     }
 
-    const properties_list: string[] = Object.keys(properties).map((p) => {
-      const { description } = properties[p]
-      let python_type = getType(properties[p])
+    const get_property = () => {
+      return Object.keys(properties).map((p) => {
+        const { description } = properties[p]
+        let python_type = getType(properties[p], class_name)
 
-      // console.log('python_type:', python_type)
-      // console.log('get_generic_class(k):', get_generic_class(k))
-      // 如果是泛型则设置泛型
-      if (is_generic_class && (python_type === `${get_generic_class(k)}`))
-        python_type = generic_type
+        // console.log('python_type:', python_type)
+        // console.log('get_generic_class(k):', get_generic_class(k))
 
-      if (description) {
-        const fill_description = description.split('\n').map(e => `\t\t# ${e.trim()}`).join('\n')
-        return `${fill_description}\n\t\t${p}: ${python_type} = None`
-      }
+        // 如果是泛型则设置泛型
+        if (is_generic_class && is_generic_property(properties[p], k)) {
+          generic_components[class_name].generic_property_key = p
+          python_type = get_generic_property_class(properties[p], generic_type)
+        }
 
-      return `\t\t${p}: ${python_type} = None`
-    })
+        if (description) {
+          const fill_description = description.split('\n').map(e => `\t\t# ${e.trim()}`).join('\n')
+          return `${fill_description}\n\t\t${p}: ${python_type} = None`
+        }
+
+        return `\t\t${p}: ${python_type} = None`
+      })
+    }
+
+    const properties_list: string[] = properties ? get_property() : ['\t\tpass']
     const final_class = [class_name_str, ...properties_list].join('\n')
     let has_push = false
     for (let i = 0; i < components_list.length; i++) {
@@ -250,7 +339,7 @@ function generate_python_enums(all_enums_info: Info, output?: string) {
       const { enum: enum_list, description, example } = properties[k]
       const enum_name = example ?? k[0].toUpperCase() + k.slice(1)
       const enum_description = description
-      const enum_str = [`${enum_description ? `""" ${enum_description} """\n` : ''}class ${enum_name}(Enum):`]
+      const enum_str = [`${enum_description ? `""" ${enum_description} """\n` : ''}class ${enum_name}(str, Enum):`]
       enum_list.forEach((e: string) => {
         enum_str.push(`\t${e} = '${e}'`)
       })
