@@ -1,12 +1,12 @@
 {
   "name": "swagger-codegen-tool",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "",
   "main": "dist/index.cjs",
   "module": "dist/index.esm.js",
   "type": "module",
   "bin": {
-    "swagger-codegen-tool": "dist/index.js"
+    "swagger-codegen-tool": "dist/index.cjs"
   },
   "files": [
     "dist"
