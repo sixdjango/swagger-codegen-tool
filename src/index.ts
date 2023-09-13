@@ -15,5 +15,4 @@ program.command('generate').description('generate code from swagger').option('-i
 
 // 输出命令行参数
 // console.log(chalk.green(`欢迎 ${option.name}, 您的年龄是 ${option.age}`))
-
 program.parse(process.argv)
