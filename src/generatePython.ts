@@ -141,7 +141,7 @@ function makeClassFile(classArray: ClassObject[], output: string) {
       if (e !== m) {
         const words = e.final_class.split(/( )|(\[)|(\])/)
         if (words.includes(m.class_name))
-          inputClassList.push(`from ${m.class_name.toLowerCase()} import ${m.class_name}`)
+          inputClassList.push(`from .${m.class_name.toLowerCase()} import ${m.class_name}`)
       }
     })
     const inputClassStr = inputClassList.join('\n')
